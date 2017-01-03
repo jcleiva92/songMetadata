@@ -84,10 +84,11 @@ def getThumbandTags(url,name):
 	fin=pg.find('</div>',i)
 	tags=''
 	f=fin
-	while pg.find('<bdi>',i)+len('<bdi>')<f:
-		i=pg.find('<bdi>',i)+len('<bdi>')
-		fin=pg.find('</bdi>',i)
-		tags=tags+pg[i:fin]+'-'
+	while getInfo(pg,i,'<bdi>')[1]<f:
+		aux,i=getInfo(pg,i,'<bdi>')
+		#i=pg.find('<bdi>',i)+len('<bdi>')
+		#fin=pg.find('</bdi>',i)
+		tags+=aux+'-'
 	
 	return tags[:-1]
 	
