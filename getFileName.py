@@ -49,14 +49,18 @@ def getResults(page,initResult):
 			if 'y' in raw_input("Desea ver mas opciones? Y/N ").lower(): initResult+=5
 			else: 
 				index=int(raw_input("Cual opcion elige? "))#validar ingreso de parametros
-				tags=getThumbandTags(results.iloc[index][4],results.iloc[index][0])
+				tags=getThumbandGenre(results.iloc[index][4],results.iloc[index][0])
 				return results.iloc[index],tags
 	return None
 		
 def getInfo(page,base,tag):
-	i=page.find(tag,base)+len(tag)
+	i=page.find(tag,base)+len(tag)#si page.find=-1 khe
 	if tag=='<a href="':
 		f=page.find('">',i)
+	elif tag=='<div id="all-tags">':
+		f=page.find('</div>',i)
+		page=page[i:f]
+		return page,len(page)
 	else:
 		f=page.find(tag[:1]+'/'+tag[1:],i)
 	return page[i:f],f
@@ -72,24 +76,20 @@ def getData(page,init):
 		
 	return name, band, album, track, url,f
 
-def getThumbandTags(url,name):
-	
+def getThumbandGenre(url,name):
+	'''search and download Thumbnail'''
 	pg=urllib.urlopen('https://musicbrainz.org'+url).read()
 	i=pg.find('data-small-thumbnail="')+len('data-small-thumbnail="')
 	f=pg.find('"',i)
 	urllib.urlretrieve('https://'+pg[i+2:f],name+'.jpg')#search for invalid names 
-	
+	'''search and get genre'''
 	pg=urllib.urlopen('https://musicbrainz.org'+url+'/tags').read()
-	i=pg.find('<div id="all-tags">')+len('<div id="all-tags">')
-	fin=pg.find('</div>',i)
-	tags=''
-	f=fin
-	while getInfo(pg,i,'<bdi>')[1]<f:
+	pg,f=getInfo(pg,0,'<div id="all-tags">')
+	genre=''
+	i=0
+	while pg.find('<bdi>',i)!=-1:
 		aux,i=getInfo(pg,i,'<bdi>')
-		#i=pg.find('<bdi>',i)+len('<bdi>')
-		#fin=pg.find('</bdi>',i)
-		tags+=aux+'-'
-	
-	return tags[:-1]
+		genre+=aux+'-'
+	return genre[:-1]
 	
 get_FileName()
