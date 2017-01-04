@@ -5,6 +5,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
 import pandas as pd
+import webbrowser
 
 def cleanFileName(fname):
 	'''Remove bad signs and words from file name'''
@@ -44,7 +45,7 @@ def get_FileName():
 		if '.mp3' in file_name: 
 			print file_name
 			archName=file_name
-			page=getPage('+'.join(cleanFileName(file_name).split())) #Replace blanc spaces to + sign
+			page=getPage('+'.join(cleanFileName(file_name).split()),0) #Replace blanc spaces to + sign
 			info,genre=getResults(page,5)
 			attachTags(archName,info,genre)
 			os.rename(archName,info['Name']+'.mp3')
@@ -53,10 +54,13 @@ def getTable(page):
 	'''Returns info whitin results table MusicBrainz'''
 	return [page.find('<tbody>'),page.find('</tbody>')]
 		
-def getPage(song):
+def getPage(song,t):
 	'''get the results page for a song File Name in MusicBrainz'''
 	page=urllib.urlopen('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed').read()
-	#Search Error - MusicBrainz
+	print 'Try '+str(t)
+	if page.find('Search Error - MusicBrainz')> -1 : 
+		t+=1
+		return getPage(song,t)
 	return page[getTable(page)[0]:getTable(page)[1]]
 	
 
@@ -121,9 +125,15 @@ def getData(page,init):
 def getThumbandGenre(url,name):
 	'''search and download Thumbnail'''
 	pg=urllib.urlopen('https://musicbrainz.org'+url).read()
-	i=pg.find('data-small-thumbnail="')+len('data-small-thumbnail="')
-	f=pg.find('"',i)
-	urllib.urlretrieve('https://'+pg[i+2:f],name+'.jpg')#search for invalid names 
+	webbrowser.open('https://musicbrainz.org'+url)
+	
+	if pg.find('<div class="cover-art">')!=-1:
+		i=pg.find('<div class="cover-art">')+len('<div class="cover-art">')
+		i=pg.find('//',i)+len('//')
+		f=pg.find('"',i)
+		if '.jgp' in pg[i:f]:
+			urllib.urlretrieve('https://'+pg[i:f],name+'.jpg')#search for invalid names 
+		else: print 'No front cover image available'
 	'''search and get genre'''
 	pg=urllib.urlopen('https://musicbrainz.org'+url+'/tags').read()
 	pg,f=getInfo(pg,0,'<div id="all-tags">')
