@@ -3,9 +3,21 @@ import os
 import urllib
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3NoHeaderError
-from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
+from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC, USLT
 import pandas as pd
-import webbrowser
+
+def getLyrics(artist,song):
+	page=urllib.urlopen('https://www.musixmatch.com/search/'+artist+' '+song).read()
+	i=page.find('"track_share_url":"')+len('"track_share_url":"')
+	f=page.find('"',i)
+	page=urllib.urlopen(page[i:f]).read()
+	i=page.find('"body":"')+len('"body":"')
+	f=page.find('","language":"')
+	lyrics=page[i:f]
+	#i=f+len('","language":"')
+	#f=page.find('"',i)
+	#lang=page[i:f]
+	return lyrics.replace('\\n','\n')
 
 def cleanFileName(fname):
 	'''Remove bad signs and words from file name'''
@@ -18,7 +30,7 @@ def cleanFileName(fname):
 	
 	return fname.strip()
 	
-def attachTags(fname,info,genre):
+def attachTags(fname,info,genre,lyrics):
 	'''Attach Metadata to file'''
 	try: 
 		tags = ID3(fname,v2_version=3)
@@ -30,6 +42,7 @@ def attachTags(fname,info,genre):
 	tags["TPE1"] = TPE1(encoding=3, text=info['Name'])
 	tags["TCON"] = TCON(encoding=3, text=genre)
 	tags["TRCK"] = TRCK(encoding=3, text=info['Track'])
+	tags["USLT"] = USLT(encoding=3, desc=u'desc', text=lyrics)
 	try:
 		tags["APIC"] = APIC(encoding=3, mime='image/jpeg', type=3, desc=u'Cover',data=open(info['Name']+'.jpg','rb').read())
 	except: pass
@@ -48,7 +61,8 @@ def get_FileName():
 			archName=file_name
 			page=getPage('+'.join(cleanFileName(file_name).split()),0) #Replace blanc spaces to + sign
 			info,genre=getResults(page,5)
-			attachTags(archName,info,genre)
+			lyrics=getLyrics(info['Band'],info['Name'])
+			attachTags(archName,info,genre,lyrics)
 			os.rename(archName,info['Name']+'.mp3')
 			
 def getTable(page):
@@ -143,7 +157,6 @@ def getThumbandGenre(urlAlbum,urlSong,name):
 	while pg.find('<bdi>',i)!=-1:
 		aux,i=getInfo(pg,i,'<bdi>')
 		genre+=aux+'-'
-	print 'genero'+genre[:-1]
 	return genre[:-1]
 	
 get_FileName()
