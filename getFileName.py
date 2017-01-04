@@ -1,7 +1,9 @@
 import re
 import os
 import urllib
-from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3NoHeaderError
+from mutagen.id3 import ID3, TIT2, TALB, TPE1, USLT, TCON, TDRC, TRCK, APIC
 import pandas as pd
 
 def cleanFileName(fname):
@@ -12,6 +14,21 @@ def cleanFileName(fname):
 	fname=re.sub(r'\([^()]*\)', '', fname)
 	fname=' '.join(filter(lambda x: x.lower() not in badWords, fname.split()))
 	return fname.strip()
+	
+def attachTags(fname,info,genre):
+	try: 
+		tags = ID3(fname,v2_version=3)
+	except ID3NoHeaderError:
+		print "Adding ID3 header;",
+		tags = ID3()
+	tags["TIT2"] = TIT2(encoding=3, text=info['Name'])
+	tags["TALB"] = TALB(encoding=3, text=info['Album'])
+	tags["TPE1"] = TPE1(encoding=3, text=info['Name'])
+	tags["TCON"] = TCON(encoding=3, text=genre)
+	tags["TRCK"] = TRCK(encoding=3, text=info['Track'])
+	tags["APIC"] = APIC(encoding=3, mime='image/jpeg', type=3, desc=u'Cover',data=open(info['Name']+'.jpg','rb').read())
+
+	tags.save(fname,v2_version=3,v1=2)
 	
 def get_FileName():
 	'''Gets the name of a mp3 File'''
@@ -24,20 +41,15 @@ def get_FileName():
 			print file_name
 			archName=file_name
 			page=getPage('+'.join(cleanFileName(file_name).split()))
-			info,tags=getResults(page,5)
-			audio=EasyID3(archName)
-			audio['title']=info['Name']
-			audio['album']=info['Album']
-			audio['tracknumber']=info['Track']
-			audio['artist']=info['Band']
-			audio['genre']=tags
-			audio.save()
+			info,genre=getResults(page,5)
+			attachTags(archName,info,genre)
 			os.rename(archName,info['Name']+'.mp3')
 			
 def getTable(page):
 	return [page.find('<tbody>'),page.find('</tbody>')]
 		
 def getPage(song):
+	print song
 	'''get the results page for a song File Name in MusicBrainz'''
 	page=urllib.urlopen('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed').read()
 	return page[getTable(page)[0]:getTable(page)[1]]
