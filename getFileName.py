@@ -1,8 +1,18 @@
+import re
 import os
 import urllib
 from mutagen.easyid3 import EasyID3
 import pandas as pd
 
+def cleanFileName(fname):
+	fname=fname[:-3]#removes.mp3
+	badSign="'?.%&!|<>/,\\*:"+'"'
+	badWords=[' sub. ', 'subtitulado','subtitulada', 'lyrics', ' video','hd','official', 'vevo','amv']
+	fname=''.join([i for i in fname if i not in badSign])
+	fname=re.sub(r'\([^()]*\)', '', fname)
+	fname=' '.join(filter(lambda x: x.lower() not in badWords, fname.split()))
+	return fname.strip()
+	
 def get_FileName():
 	'''Gets the name of a mp3 File'''
 	file_list=os.listdir(r'C:\Users\Camilo\Documents\py\Proyectos\MusicProyect\mp3Files')
@@ -12,16 +22,17 @@ def get_FileName():
 	for file_name in file_list:
 		if '.mp3' in file_name: 
 			print file_name
-			audio=EasyID3(file_name)
-			page=getPage(file_name)
+			archName=file_name
+			page=getPage('+'.join(cleanFileName(file_name).split()))
 			info,tags=getResults(page,5)
+			audio=EasyID3(archName)
 			audio['title']=info['Name']
 			audio['album']=info['Album']
 			audio['tracknumber']=info['Track']
 			audio['artist']=info['Band']
 			audio['genre']=tags
 			audio.save()
-			os.rename(file_name,info['Name']+'.mp3')
+			os.rename(archName,info['Name']+'.mp3')
 			
 def getTable(page):
 	return [page.find('<tbody>'),page.find('</tbody>')]
