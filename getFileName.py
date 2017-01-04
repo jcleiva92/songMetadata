@@ -30,8 +30,9 @@ def attachTags(fname,info,genre):
 	tags["TPE1"] = TPE1(encoding=3, text=info['Name'])
 	tags["TCON"] = TCON(encoding=3, text=genre)
 	tags["TRCK"] = TRCK(encoding=3, text=info['Track'])
-	tags["APIC"] = APIC(encoding=3, mime='image/jpeg', type=3, desc=u'Cover',data=open(info['Name']+'.jpg','rb').read())
-
+	try:
+		tags["APIC"] = APIC(encoding=3, mime='image/jpeg', type=3, desc=u'Cover',data=open(info['Name']+'.jpg','rb').read())
+	except: pass
 	tags.save(fname,v2_version=3,v1=2)
 	
 def get_FileName():
@@ -125,13 +126,12 @@ def getData(page,init):
 def getThumbandGenre(url,name):
 	'''search and download Thumbnail'''
 	pg=urllib.urlopen('https://musicbrainz.org'+url).read()
-	webbrowser.open('https://musicbrainz.org'+url)
 	
 	if pg.find('<div class="cover-art">')!=-1:
 		i=pg.find('<div class="cover-art">')+len('<div class="cover-art">')
 		i=pg.find('//',i)+len('//')
 		f=pg.find('"',i)
-		if '.jgp' in pg[i:f]:
+		if '.jpg' in pg[i:f]:
 			urllib.urlretrieve('https://'+pg[i:f],name+'.jpg')#search for invalid names 
 		else: print 'No front cover image available'
 	'''search and get genre'''
@@ -142,6 +142,7 @@ def getThumbandGenre(url,name):
 	while pg.find('<bdi>',i)!=-1:
 		aux,i=getInfo(pg,i,'<bdi>')
 		genre+=aux+'-'
+	print 'genero'+genre[:-1]
 	return genre[:-1]
 	
 get_FileName()
