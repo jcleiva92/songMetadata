@@ -70,7 +70,7 @@ def getResults(page,initResult):
 	print "Choose the correct one: "
 	i=0
 	f=0
-	rotules=['Name','Band','Album','Track','Url']
+	rotules=['Name','Band','Album','Track','UrlAlbum','UrlSong']
 	results=pd.DataFrame()
 	while i <initResult:
 		data=list(getData(page,f))
@@ -83,8 +83,8 @@ def getResults(page,initResult):
 			else: 
 				index=raw_input("Option Number? ")#validar ingreso de parametros
 				index=checkInput(len(results),index)
-				tags=getThumbandGenre(results.iloc[index][4],results.iloc[index][0])
-				return results.iloc[index],tags
+				genres=getThumbandGenre(results.iloc[index][4],results.iloc[index][5],results.iloc[index][0])
+				return results.iloc[index],genres
 	return None
 
 def checkInput(size,index):
@@ -113,19 +113,20 @@ def getInfo(page,base,tag):
 	
 def getData(page,init):
 	'''Calls getInfo and return the tags results'''
-	base=page.find('<a href="/recording/',init)
+	base=page.find('<a href="/recording/',init)+len('<a href="')
 	
+	urlSong=page[base:page.find('"',base)]
 	name,f=getInfo(page,base,'<bdi>')
 	band,f=getInfo(page,f,'<bdi>')
-	url,f=getInfo(page,f,'<a href="')
+	urlAlbum,f=getInfo(page,f,'<a href="')
 	album,f=getInfo(page,f,'<bdi>')
 	track,f=getInfo(page,f,'<td>')
 		
-	return name, band, album, track, url,f
+	return name, band, album, track, urlAlbum,urlSong,f
 
-def getThumbandGenre(url,name):
+def getThumbandGenre(urlAlbum,urlSong,name):
 	'''search and download Thumbnail'''
-	pg=urllib.urlopen('https://musicbrainz.org'+url).read()
+	pg=urllib.urlopen('https://musicbrainz.org'+urlAlbum).read()
 	
 	if pg.find('<div class="cover-art">')!=-1:
 		i=pg.find('<div class="cover-art">')+len('<div class="cover-art">')
@@ -135,7 +136,7 @@ def getThumbandGenre(url,name):
 			urllib.urlretrieve('https://'+pg[i:f],name+'.jpg')#search for invalid names 
 		else: print 'No front cover image available'
 	'''search and get genre'''
-	pg=urllib.urlopen('https://musicbrainz.org'+url+'/tags').read()
+	pg=urllib.urlopen('https://musicbrainz.org'+urlSong+'/tags').read()
 	pg,f=getInfo(pg,0,'<div id="all-tags">')
 	genre=''
 	i=0
