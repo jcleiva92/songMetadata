@@ -41,8 +41,8 @@ def cleanBasic(fname):
 	
 def cleanFileName(fname):
 	'''Remove bad signs and words from file name'''
-	fname=fname.decode('cp1252').encode('utf-8')
-	k='Victor manuelle-Apiádate de mí.mp3'
+	fname=fname.decode('cp1252').encode('utf-8')#Big encode problem
+	print fname
 	fname=fname[:-3]#removes.mp3
 	badSign="'?.%&!|<>-/,\\+*:"+'"' 
 	badWords=[' sub. ', 'subtitulado','subtitulada', 'lyrics', ' video','hd','official', 'vevo','amv', 'con letra', 'download', 'wlyrics']
@@ -90,7 +90,7 @@ def getFileName():
 		if '.mp3' in fileName: 
 			archName=fileName
 			fileName=cleanFileName(fileName)
-			page=getPage(fileName,0) #Replace blanc spaces to + sign
+			page=getPage(fileName,0) 
 			info,genre=getResults(page,5)
 			genre=genre.decode('utf-8')
 			lyrics=getLyrics(info['Band'],info['Name'])
@@ -105,6 +105,7 @@ def getTable(page):
 def getPage(song,t):
 	'''get the results page for a song File Name in MusicBrainz'''
 	page=urllib.urlopen('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed').read()
+	webbrowser.open('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed')
 	print 'Try '+str(t)
 	if page.find('Search Error - MusicBrainz')> -1 : 
 		t+=1
@@ -127,7 +128,7 @@ def getResults(page,initResult):
 			print results.tail(5).ix[:,:4]
 			if 'y' in raw_input("More Options? Y/N ").lower(): initResult+=5
 			else: 
-				index=raw_input("Option Number? ")#validar ingreso de parametros
+				index=raw_input("Option Number? ")
 				index=checkInput(len(results),index)
 				genres=getThumbandGenre(results.iloc[index][4],results.iloc[index][5],results.iloc[index][0])
 				return results.iloc[index],genres
@@ -165,7 +166,9 @@ def getData(page,init):
 	name,f=getInfo(page,base,'<bdi>')
 	band,f=getInfo(page,f,'<bdi>')
 	urlAlbum,f=getInfo(page,f,'<a href="')
+	if 'isrc' in urlAlbum: urlAlbum,f=getInfo(page,f,'<a href="')
 	album,f=getInfo(page,f,'<bdi>')
+	if '<code>' in album: webbrowser.open('https://musicbrainz.org'+urlAlbum)
 	track,f=getInfo(page,f,'<td>')
 		
 	return name, band, album, track, urlAlbum,urlSong,f
@@ -179,7 +182,7 @@ def getThumbandGenre(urlAlbum,urlSong,name):
 		i=pg.find('//',i)+len('//')
 		f=pg.find('"',i)
 		if '.jpg' in pg[i:f]:
-			urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')#search for invalid names 
+			urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
 		else: print 'No front cover image available'
 	'''search and get genre'''
 	pg=urllib.urlopen('https://musicbrainz.org'+urlSong+'/tags').read()
@@ -195,5 +198,4 @@ def getThumbandGenre(urlAlbum,urlSong,name):
 		return genre
 	return genre[:-1]
 
-#print cleanFileName('Victor manuelle-Apiádate de mí.mp3')
 getFileName()
