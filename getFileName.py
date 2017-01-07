@@ -8,7 +8,9 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC, USLT
 import pandas as pd
 import webbrowser
-
+#one ed sheeran X album png archive
+#fix more than 1 irsc
+#search track cheap Thrills Sia <a
 def getLyrics(artist,song):
 	artist=cleanBasic(artist)
 	song=cleanBasic(song)
@@ -31,7 +33,7 @@ def cleanBasic(fname):
 def cleanFileName(fname):
 	'''Remove bad signs and words from file name'''
 	fname=fname.decode('cp1252').encode('utf-8')#Big encode problem
-	print fname
+	print fname.decode('utf-8')
 	fname=fname[:-3]#removes.mp3
 	badSign="'?.%&!|<>-/,\\+*:"+'"' 
 	badWords=[' sub. ', 'subtitulado','subtitulada', 'lyrics', ' video','hd','official', 'vevo','amv', 'con letra', 'download', 'wlyrics']
@@ -41,10 +43,9 @@ def cleanFileName(fname):
 	fname='+'.join(fname.split())
 	return fname.strip()
 	
-def attachTags(fname,info,genre,lyrics):
+def attachTags(fname,info,genre,lyrics,tCover):
 	'''Attach Metadata to file'''
 	for i in list(info.index): info[i]=info[i].decode('utf-8').replace('&amp;','&')
-	lyrics=lyrics.decode('utf-8')
 	try: 
 		tags = ID3(fname,v2_version=3)
 	except ID3NoHeaderError:
@@ -57,15 +58,22 @@ def attachTags(fname,info,genre,lyrics):
 	tags["TRCK"] = TRCK(encoding=3, text=info['Track'])
 	newName=cleanBasic(info['Name'])
 	if lyrics:
+		lyrics=lyrics.decode('utf-8')
 		tags["USLT"] = USLT(encoding=3, desc=u'desc', text=lyrics)
 		text_file = open(newName+".txt", "w")
 		lyrics=lyrics.encode('cp1252')
 		text_file.write(lyrics)
 	else:
 		print 'No Lyrics Available'
+	imag=''
+	if tCover=='.jpg':
+		imag='image/jpeg'
+	if tCover=='.png':
+		imag='image/png'
 	try:
-		tags["APIC"] = APIC(encoding=3, mime='image/jpeg', type=3, desc=u'Cover',data=open(newName+'.jpg','rb').read())
+		tags["APIC"] = APIC(encoding=3, mime=imag, type=3, desc=u'Cover',data=open(newName+tCover,'rb').read())
 	except: pass
+
 	tags.save(fname,v2_version=3,v1=2)
 	
 def getFileName():
@@ -80,10 +88,10 @@ def getFileName():
 			archName=fileName
 			fileName=cleanFileName(fileName)
 			page=getPage(fileName,0) 
-			info,genre=getResults(page,5)
+			info,genre,tCover=getResults(page,5)
 			genre=genre.decode('utf-8')
 			lyrics=getLyrics(info['Band'],info['Name'])
-			attachTags(archName,info,genre,lyrics)
+			attachTags(archName,info,genre,lyrics,tCover)
 			fname=cleanBasic(info['Name'])
 			os.rename(archName,fname+'.mp3')
 			
@@ -119,9 +127,9 @@ def getResults(page,initResult):
 				index=raw_input("Option Number? ")
 				index=checkInput(len(results),index)
 				genres=getGenre(results.iloc[index]['UrlSong'])
-				cover=getThumb(results.iloc[index]['UrlAlbum'],results.iloc[index]['Name'],True)
+				cover,tCover=getThumb(results.iloc[index]['UrlAlbum'],results.iloc[index]['Name'],True)
 				
-				return results.iloc[index],genres
+				return results.iloc[index],genres,tCover
 	return None
 
 def checkInput(size,index):
@@ -156,13 +164,14 @@ def getData(page,init):
 	name,f=getInfo(page,base,'<bdi>')
 	k=f
 	band,f=getInfo(page,f,'<bdi>')
-	if page.find('<span class="comment">',k)<f:
+	if page.find('<span class="comment">',k)<f and page.find('<span class="comment">',k)>0:
 		band,f=getInfo(page,f,'<bdi>')
 	urlAlbum,f=getInfo(page,f,'<a href="')
-	if 'isrc' in urlAlbum: urlAlbum,f=getInfo(page,f,'<a href="')
+	while 'isrc' in urlAlbum: 
+		urlAlbum,f=getInfo(page,f,'<a href="')
 	album,f=getInfo(page,f,'<bdi>')
 	track,f=getInfo(page,f,'<td>')
-	if getThumb(urlAlbum,name,False): cover='Available'
+	if getThumb(urlAlbum,name,False)[0]: cover='Available'
 	else: cover= 'No Available'
 		
 	return name, band, album, track,cover, urlAlbum,urlSong,f
@@ -192,8 +201,12 @@ def getThumb(urlAlbum,name,download):
 		if '.jpg' in pg[i:f]:
 			if download:
 				urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
-			return True
+			return True,'.jpg'
+		if '.png' in pg[i:f]:
+			if download:
+				urllib.urlretrieve('https://'+pg[i:f],newName+'.png')
+			return True,'.png'
 	if download: print 'No front cover image available'
-	return False
+	return False,''
 		
 getFileName()
