@@ -105,7 +105,7 @@ def getResults(page,initResult):
 	print "Choose the correct one: "
 	i=0
 	f=0
-	rotules=['Name','Band','Album','Track','UrlAlbum','UrlSong']
+	rotules=['Name','Band','Album','Track','Cover','UrlAlbum','UrlSong']
 	results=pd.DataFrame()
 	while i <initResult:
 		data=list(getData(page,f))
@@ -113,13 +113,13 @@ def getResults(page,initResult):
 		results=results.append(pd.DataFrame([data[:-1]],columns=rotules),ignore_index=True)
 		i+=1
 		if i==initResult: 
-			print results.tail(5).ix[:,:4]
+			print results.tail(5).ix[:,:5]
 			if 'y' in raw_input("More Options? Y/N ").lower(): initResult+=5
 			else: 
 				index=raw_input("Option Number? ")
 				index=checkInput(len(results),index)
 				genres=getGenre(results.iloc[index]['UrlSong'])
-				getThumb(results.iloc[index]['UrlAlbum'],results.iloc[index]['Name'])
+				cover=getThumb(results.iloc[index]['UrlAlbum'],results.iloc[index]['Name'],True)
 				
 				return results.iloc[index],genres
 	return None
@@ -154,13 +154,18 @@ def getData(page,init):
 	
 	urlSong=page[base:page.find('"',base)]
 	name,f=getInfo(page,base,'<bdi>')
+	k=f
 	band,f=getInfo(page,f,'<bdi>')
+	if page.find('<span class="comment">',k)<f:
+		band,f=getInfo(page,f,'<bdi>')
 	urlAlbum,f=getInfo(page,f,'<a href="')
 	if 'isrc' in urlAlbum: urlAlbum,f=getInfo(page,f,'<a href="')
 	album,f=getInfo(page,f,'<bdi>')
 	track,f=getInfo(page,f,'<td>')
+	if getThumb(urlAlbum,name,False): cover='Available'
+	else: cover= 'No Available'
 		
-	return name, band, album, track, urlAlbum,urlSong,f
+	return name, band, album, track,cover, urlAlbum,urlSong,f
 
 def getGenre(urlSong):
 	'''search and get genre'''
@@ -168,7 +173,6 @@ def getGenre(urlSong):
 	pg,f=getInfo(pg,0,'<div id="all-tags">')
 	genre=''
 	i=0
-	
 	while pg.find('<bdi>',i)!=-1:
 		aux,i=getInfo(pg,i,'<bdi>')
 		genre+=aux+'-'
@@ -177,7 +181,7 @@ def getGenre(urlSong):
 		return genre
 	return genre[:-1]
 	
-def getThumb(urlAlbum,name):
+def getThumb(urlAlbum,name,download):
 	'''search and download Thumbnail'''
 	pg=urllib.urlopen('https://musicbrainz.org'+urlAlbum).read()
 	newName=cleanBasic(name).decode('utf-8')
@@ -186,7 +190,10 @@ def getThumb(urlAlbum,name):
 		i=pg.find('//',i)+len('//')
 		f=pg.find('"',i)
 		if '.jpg' in pg[i:f]:
-			urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
-		else: print 'No front cover image available'
+			if download:
+				urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
+			return True
+	if download: print 'No front cover image available'
+	return False
 		
 getFileName()
