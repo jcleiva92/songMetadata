@@ -9,17 +9,6 @@ from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC, USLT
 import pandas as pd
 import webbrowser
 
-# DC TALK-Consume me
-#Album Photograph Ed Sheeran <code>...
-#quitar puntos y tildes nombr de entrada
-#read first if there is a cover img
-#verify any output to be an html tag
-#Change &amp; by &
-
-def remAccents(input_str):
-    nfkd_form = unicodedata.normalize('NFKD', input_str) #unicode(,'utf-8')
-    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
-
 def getLyrics(artist,song):
 	artist=cleanBasic(artist)
 	song=cleanBasic(song)
@@ -129,7 +118,9 @@ def getResults(page,initResult):
 			else: 
 				index=raw_input("Option Number? ")
 				index=checkInput(len(results),index)
-				genres=getThumbandGenre(results.iloc[index][4],results.iloc[index][5],results.iloc[index][0])
+				genres=getGenre(results.iloc[index]['UrlSong'])
+				getThumb(results.iloc[index]['UrlAlbum'],results.iloc[index]['Name'])
+				
 				return results.iloc[index],genres
 	return None
 
@@ -171,17 +162,7 @@ def getData(page,init):
 		
 	return name, band, album, track, urlAlbum,urlSong,f
 
-def getThumbandGenre(urlAlbum,urlSong,name):
-	'''search and download Thumbnail'''
-	pg=urllib.urlopen('https://musicbrainz.org'+urlAlbum).read()
-	newName=cleanBasic(name).decode('utf-8')
-	if pg.find('<div class="cover-art">')!=-1:
-		i=pg.find('<div class="cover-art">')+len('<div class="cover-art">')
-		i=pg.find('//',i)+len('//')
-		f=pg.find('"',i)
-		if '.jpg' in pg[i:f]:
-			urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
-		else: print 'No front cover image available'
+def getGenre(urlSong):
 	'''search and get genre'''
 	pg=urllib.urlopen('https://musicbrainz.org'+urlSong+'/tags').read()
 	pg,f=getInfo(pg,0,'<div id="all-tags">')
@@ -195,5 +176,17 @@ def getThumbandGenre(urlAlbum,urlSong,name):
 		genre=raw_input('No genre available, input desire: ')
 		return genre
 	return genre[:-1]
-
+	
+def getThumb(urlAlbum,name):
+	'''search and download Thumbnail'''
+	pg=urllib.urlopen('https://musicbrainz.org'+urlAlbum).read()
+	newName=cleanBasic(name).decode('utf-8')
+	if pg.find('<div class="cover-art">')!=-1:
+		i=pg.find('<div class="cover-art">')+len('<div class="cover-art">')
+		i=pg.find('//',i)+len('//')
+		f=pg.find('"',i)
+		if '.jpg' in pg[i:f]:
+			urllib.urlretrieve('https://'+pg[i:f],newName+'.jpg')
+		else: print 'No front cover image available'
+		
 getFileName()
