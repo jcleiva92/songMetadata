@@ -105,7 +105,6 @@ def getTable(page):
 def getPage(song,t):
 	'''get the results page for a song File Name in MusicBrainz'''
 	page=urllib.urlopen('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed').read()
-	webbrowser.open('https://musicbrainz.org/search?query='+song+'&type=recording&method=indexed')
 	print 'Try '+str(t)
 	if page.find('Search Error - MusicBrainz')> -1 : 
 		t+=1
@@ -168,7 +167,6 @@ def getData(page,init):
 	urlAlbum,f=getInfo(page,f,'<a href="')
 	if 'isrc' in urlAlbum: urlAlbum,f=getInfo(page,f,'<a href="')
 	album,f=getInfo(page,f,'<bdi>')
-	if '<code>' in album: webbrowser.open('https://musicbrainz.org'+urlAlbum)
 	track,f=getInfo(page,f,'<td>')
 		
 	return name, band, album, track, urlAlbum,urlSong,f
